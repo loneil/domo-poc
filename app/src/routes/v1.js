@@ -4,8 +4,9 @@ const path = require('path');
 const router = require('express').Router();
 const yaml = require('js-yaml');
 
-const keycloak = require('../components/keycloak');
-const helloRouter = require('./v1/hello');
+const file = require('../file/');
+
+const filePath = file.mount(router);
 
 const getSpec = () => {
   const rawSpec = fs.readFileSync(path.join(__dirname, '../docs/v1.api-spec.yaml'), 'utf8');
@@ -20,7 +21,7 @@ router.get('/', (_req, res) => {
   res.status(200).json({
     endpoints: [
       '/docs',
-      '/hello'
+      filePath
     ]
   });
 });
@@ -40,8 +41,5 @@ router.get('/api-spec.yaml', (_req, res) => {
 router.get('/api-spec.json', (_req, res) => {
   res.status(200).json(getSpec());
 });
-
-/** Hello Router */
-router.use('/hello', keycloak.protect(), helloRouter);
 
 module.exports = router;
