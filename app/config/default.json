@@ -40,6 +40,12 @@
       "serverUrl": "https://dev.oidc.gov.bc.ca/auth"
     },
     "logLevel": "http",
-    "port": "8080"
+    "port": "8080",
+    "rateLimit" : {
+      "public": {
+        "windowMs": "900000",
+        "max": "100"
+      }
+    }
   }
 }

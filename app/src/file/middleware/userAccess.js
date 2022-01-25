@@ -1,6 +1,6 @@
 const Problem = require('api-problem');
 
-const keycloak = require('../../../components/keycloak');
+const keycloak = require('../../components/keycloak');
 
 const getToken = req => {
   try {

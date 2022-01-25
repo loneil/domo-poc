@@ -1,6 +1,7 @@
 module.exports = {
   // Tables
-  Files: require('./tables/files')
+  Files: require('./tables/files'),
+  FilePermissions: require('./tables/filePermissions')
 
   // Views
 };

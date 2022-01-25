@@ -6,7 +6,13 @@
           <router-link :to="{ name: 'Home' }">Home</router-link>
         </li>
         <li>
-          <router-link :to="{ name: 'Secure' }">Secure</router-link>
+          <router-link :to="{ name: 'Secure' }">Upload</router-link>
+        </li>
+        <li>
+          <router-link :to="{ name: 'Get' }">Get File</router-link>
+        </li>
+        <li>
+          <router-link :to="{ name: 'Files' }">My Files</router-link>
         </li>
       </ul>
     </div>

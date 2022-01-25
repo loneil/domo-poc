@@ -14,10 +14,12 @@ exports.up = function(knex) {
     }))
     .then(() => knex.schema.createTable('files', table => {
       table.uuid('id').primary();
-      table.string('name', 1024).notNullable();
+      table.string('originalName', 1024).notNullable();
       table.string('path', 1024).notNullable();
       table.string('mimeType').notNullable();
-      table.string('uploaderOidcId').notNullable();
+      table.string('storage').notNullable();
+      table.string('uploaderOidcId');
+      table.boolean('public').notNullable().defaultTo(false);
       stamps(knex, table);
     }))
     .then(() => knex.schema.createTable('file_permissions', table => {
@@ -25,7 +27,6 @@ exports.up = function(knex) {
       table.string('oidcId').notNullable();
       table.uuid('fileId').references('id').inTable('files').notNullable();
       table.string('code').references('code').inTable('permissions').notNullable();
-      table.string('display').notNullable();
       table.boolean('active').notNullable().defaultTo(true);
       stamps(knex, table);
     }))

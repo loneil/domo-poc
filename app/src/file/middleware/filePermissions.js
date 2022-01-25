@@ -28,7 +28,36 @@ const currentFileRecord = async (req, res, next) => {
   next();
 };
 
+/**
+ * @function hasFilePermissions
+ * Check if the call can be made
+ * @returns {Function} a middleware function
+ */
+const hasFilePermissions = (permission) => {
+  return async (req, res, next) => {
+    // If asking to read a public file you're good
+    if (req.currentFileRecord.public && permission === 'READ') {
+      return next();
+    }
+
+    // Other than the above case, gaurd against unauthed access for anything
+    if (!req.currentUser || !req.currentUser.keycloakId) {
+      return next(new Problem(403, { detail: 'Unauthorized for this file' }));
+    }
+
+    // Permute permissions and check if the permission to check exists for the user making the call
+    const permissions = await service.readPermissions(req.params.id, req.currentUser.keycloakId);
+    if (!permissions.length) {
+      return next(new Problem(403, { detail: 'Unauthorized for this file' }));
+    }
+
+
+
+    next();
+  };
+};
+
 
 module.exports = {
-  currentFileRecord
+  currentFileRecord, hasFilePermissions
 };

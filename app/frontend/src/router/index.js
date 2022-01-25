@@ -38,6 +38,24 @@ export default function getRouter(basePath = '/') {
         }
       },
       {
+        path: '/get',
+        name: 'Get',
+        component: () => import(/* webpackChunkName: "get" */ '@/views/Get.vue'),
+        meta: {
+          hasLogin: true,
+          requiresAuth: true
+        }
+      },
+      {
+        path: '/files',
+        name: 'Files',
+        component: () => import(/* webpackChunkName: "files" */ '@/views/Files.vue'),
+        meta: {
+          hasLogin: true,
+          requiresAuth: true
+        }
+      },
+      {
         path: '/404',
         alias: '*',
         name: 'NotFound',
@@ -57,7 +75,6 @@ export default function getRouter(basePath = '/') {
       && !router.app.$keycloak.authenticated) {
       const redirect = location.origin + basePath + to.path + location.search;
       const loginUrl = router.app.$keycloak.createLoginUrl({
-        idpHint: 'idir',
         redirectUri: redirect
       });
       window.location.replace(loginUrl);

@@ -10,11 +10,18 @@ const log = require('./src/components/log')(module.filename);
 const httpLogger = require('./src/components/log').httpLogger;
 const v1Router = require('./src/routes/v1');
 
+const DataConnection = require('./src/db/dataConnection');
+const dataConnection = new DataConnection();
+
 const apiRouter = express.Router();
 const state = {
+  connections: {
+    data: false
+  },
   ready: true, // No dependencies so application is always ready
   shutdown: false
 };
+let probeId;
 
 const app = express();
 app.use(compression());
@@ -23,6 +30,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Skip if running tests
 if (process.env.NODE_ENV !== 'test') {
+  // Initialize connections and exit if unsuccessful
+  initializeConnections();
   app.use(httpLogger);
 }
 
@@ -77,7 +86,11 @@ app.use((err, _req, res, _next) => {
 
   if (err instanceof Problem) {
     err.send(res, null);
+    // Attempt to reset DB connection if 5xx error
+    if (err.status >= 500 && !state.shutdown) dataConnection.resetConnection();
+    err.send(res, null);
   } else {
+    if (!state.shutdown) dataConnection.resetConnection();
     new Problem(500, 'Server Error', {
       detail: (err.message) ? err.message : err
     }).send(res);
@@ -131,7 +144,72 @@ function shutdown() {
 function cleanup() {
   log.info('Service no longer accepting traffic');
   state.shutdown = true;
-  process.exit();
+  clearInterval(probeId);
+
+  dataConnection.close(() => process.exit());
+
+  // Wait 10 seconds max before hard exiting
+  setTimeout(() => process.exit(), 10000);
+}
+
+/**
+ *  @function initializeConnections
+ *  Initializes the database connections
+ *  This will force the application to exit if it fails
+ */
+function initializeConnections() {
+  // Initialize connections and exit if unsuccessful
+  const tasks = [
+    dataConnection.checkAll()
+  ];
+
+  Promise.all(tasks)
+    .then(results => {
+      state.connections.data = results[0];
+
+      if (state.connections.data) log.info('DataConnection Reachable', { function: 'initializeConnections' });
+    })
+    .catch(error => {
+      log.error(`Initialization failed: Database OK = ${state.connections.data}`, { function: 'initializeConnections' });
+      log.error('Connection initialization failure', error.message, { function: 'initializeConnections' });
+      if (!state.ready) {
+        process.exitCode = 1;
+        shutdown();
+      }
+    })
+    .finally(() => {
+      state.ready = Object.values(state.connections).every(x => x);
+      if (state.ready) {
+        log.info('Service ready to accept traffic', { function: 'initializeConnections' });
+        // Start periodic 10 second connection probe check
+        probeId = setInterval(checkConnections, 10000);
+      }
+    });
+}
+
+/**
+ * @function checkConnections
+ * Checks Database connectivity
+ * This will force the application to exit if a connection fails
+ */
+function checkConnections() {
+  const wasReady = state.ready;
+  if (!state.shutdown) {
+    const tasks = [
+      dataConnection.checkConnection()
+    ];
+
+    Promise.all(tasks).then(results => {
+      state.connections.data = results[0];
+      state.ready = Object.values(state.connections).every(x => x);
+      if (!wasReady && state.ready) log.info('Service ready to accept traffic', { function: 'checkConnections' });
+      log.verbose(state);
+      if (!state.ready) {
+        process.exitCode = 1;
+        shutdown();
+      }
+    });
+  }
 }
 
 module.exports = app;

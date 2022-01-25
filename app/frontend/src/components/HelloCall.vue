@@ -33,7 +33,7 @@ export default {
       this.error = false;
       this.loading = true;
       try {
-        const response = await helloService.getHello();
+        const response = await helloService.getFile('0684a1db-09bf-42bb-a191-6116e25795bd');
         this.helloData = response.data;
       } catch (e) {
         this.error = true;
