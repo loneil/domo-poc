@@ -1,22 +1,20 @@
 const { Model } = require('objection');
 const { Timestamps } = require('../mixins');
-// const { Regex } = require('../../constants');
 const stamps = require('../jsonSchema').stamps;
 
-class FilePermissions extends Timestamps(Model) {
+class ObjectPermission extends Timestamps(Model) {
   static get tableName() {
-    return 'file_permissions';
+    return 'object_permission';
   }
 
   static get jsonSchema() {
     return {
       type: 'object',
-      required: ['id', 'oidcId', 'fileId', 'code'],
+      required: ['id', 'oidcId', 'objectId', 'code'],
       properties: {
-        // id: { type: 'string', pattern: Regex.UUID },
         id: { type: 'string' },
         oidcId: { type: 'string' },
-        fileId: { type: 'string' },
+        objectId: { type: 'string' },
         code: { type: 'string' },
         ...stamps
       },
@@ -25,4 +23,4 @@ class FilePermissions extends Timestamps(Model) {
   }
 }
 
-module.exports = FilePermissions;
+module.exports = ObjectPermission;

@@ -1,23 +1,22 @@
 const { Model } = require('objection');
 const { Timestamps } = require('../mixins');
-// const { Regex } = require('../../constants');
 const stamps = require('../jsonSchema').stamps;
 
-class Files extends Timestamps(Model) {
+class Object extends Timestamps(Model) {
   static get tableName() {
-    return 'files';
+    return 'object';
   }
 
   static get relationMappings() {
-    const FilePermissions = require('./filePermissions');
+    const ObjectPermission = require('./objectPermission');
 
     return {
-      filePermissions: {
+      objectPermission: {
         relation: Model.HasManyRelation,
-        modelClass: FilePermissions,
+        modelClass: ObjectPermission,
         join: {
-          from: 'files.id',
-          to: 'file_permissions.fileId'
+          from: 'object.id',
+          to: 'object_permission.objectId'
         }
       }
     };
@@ -28,12 +27,10 @@ class Files extends Timestamps(Model) {
       type: 'object',
       required: ['id', 'originalName', 'path', 'mimeType'],
       properties: {
-        // id: { type: 'string', pattern: Regex.UUID },
         id: { type: 'string' },
         originalName: { type: 'string', minLength: 1, maxLength: 1024 },
         path: { type: 'string', minLength: 1, maxLength: 1024 },
         mimeType: { type: 'string' },
-        storage: { type: 'string' },
         uploaderOidcId: { type: 'string' },
         public: { type: 'boolean' },
         ...stamps
@@ -43,4 +40,4 @@ class Files extends Timestamps(Model) {
   }
 }
 
-module.exports = Files;
+module.exports = Object;

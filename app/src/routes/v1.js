@@ -4,7 +4,7 @@ const path = require('path');
 const router = require('express').Router();
 const yaml = require('js-yaml');
 
-const file = require('../file/');
+const file = require('../object');
 
 const filePath = file.mount(router);
 

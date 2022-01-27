@@ -6,28 +6,44 @@ exports.up = function(knex) {
   return Promise.resolve()
 
     // Create tables
-    .then(() => knex.schema.createTable('permissions', table => {
+    .then(() => knex.schema.createTable('permission', table => {
       table.string('code').primary();
       table.string('display').notNullable();
       table.boolean('active').notNullable().defaultTo(true);
       stamps(knex, table);
     }))
-    .then(() => knex.schema.createTable('files', table => {
+    .then(() => knex.schema.createTable('identity_provider', table => {
+      table.string('code').primary();
+      table.string('display').notNullable();
+      table.string('idpAlias');
+      table.boolean('active').notNullable().defaultTo(true);
+      stamps(knex, table);
+    }))
+    .then(() => knex.schema.createTable('oidc_user', table => {
+      table.string('oidcId').primary();
+      table.string('idp').references('code').inTable('identity_provider').notNullable();
+      table.string('firstName');
+      table.string('fullName');
+      table.string('lastName');
+      table.string('username').notNullable().index();
+      table.string('email').index();
+      table.boolean('active').notNullable().defaultTo(true);
+      stamps(knex, table);
+    }))
+    .then(() => knex.schema.createTable('object', table => {
       table.uuid('id').primary();
       table.string('originalName', 1024).notNullable();
       table.string('path', 1024).notNullable();
       table.string('mimeType').notNullable();
-      table.string('storage').notNullable();
-      table.string('uploaderOidcId');
+      table.string('uploaderOidcId').references('oidcId').inTable('oidc_user');
       table.boolean('public').notNullable().defaultTo(false);
       stamps(knex, table);
     }))
-    .then(() => knex.schema.createTable('file_permissions', table => {
+    .then(() => knex.schema.createTable('object_permission', table => {
       table.uuid('id').primary();
-      table.string('oidcId').notNullable();
-      table.uuid('fileId').references('id').inTable('files').notNullable();
-      table.string('code').references('code').inTable('permissions').notNullable();
-      table.boolean('active').notNullable().defaultTo(true);
+      table.string('oidcId').references('oidcId').inTable('oidc_user').notNullable();
+      table.uuid('objectId').references('id').inTable('object').notNullable();
+      table.string('code').references('code').inTable('permission').notNullable();
       stamps(knex, table);
     }))
 
@@ -53,13 +69,41 @@ exports.up = function(knex) {
           active: true
         },
       ];
-      return knex('permissions').insert(items);
+      return knex('permission').insert(items);
+    })
+    .then(() => {
+      const items = [
+        {
+          createdBy: CREATED_BY,
+          code: 'idir',
+          display: 'IDIR',
+          idpAlias: 'idir',
+          active: true
+        },
+        {
+          createdBy: CREATED_BY,
+          code: 'bceid-basic',
+          display: 'Basic BCeID',
+          idpAlias: 'bceid-basic',
+          active: true
+        },
+        {
+          createdBy: CREATED_BY,
+          code: 'bceid-business',
+          display: 'Business BCeID',
+          idpAlias: 'bceid-business',
+          active: true
+        },
+      ];
+      return knex('identity_provider').insert(items);
     });
 };
 
 exports.down = function(knex) {
   return Promise.resolve()
-    .then(() => knex.schema.dropTableIfExists('file_permissions'))
-    .then(() => knex.schema.dropTableIfExists('files'))
-    .then(() => knex.schema.dropTableIfExists('permissions'));
+    .then(() => knex.schema.dropTableIfExists('object_permission'))
+    .then(() => knex.schema.dropTableIfExists('object'))
+    .then(() => knex.schema.dropTableIfExists('permission'))
+    .then(() => knex.schema.dropTableIfExists('oidc_user'))
+    .then(() => knex.schema.dropTableIfExists('identity_provider'));
 };
