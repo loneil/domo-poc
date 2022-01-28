@@ -1,17 +1,32 @@
 const stamps = require('../stamps');
+const uuid = require('uuid');
 
-const CREATED_BY = 'migration-000';
+const CREATED_BY = uuid.NIL;
 
-exports.up = function(knex) {
+exports.up = function (knex) {
   return Promise.resolve()
 
-    // Create tables
-    .then(() => knex.schema.createTable('permission', table => {
-      table.string('code').primary();
-      table.string('display').notNullable();
+    // Create user table and add a dummy system user (to link migration CreatedBy stamps)
+    .then(() => knex.schema.createTable('oidc_user', table => {
+      table.string('oidcId').primary();
+      table.string('firstName');
+      table.string('fullName');
+      table.string('lastName');
+      table.string('username').notNullable().index();
+      table.string('email').index();
       table.boolean('active').notNullable().defaultTo(true);
       stamps(knex, table);
     }))
+    .then(() => {
+      const items = [
+        {
+          oidcId: CREATED_BY,
+          username: 'System',
+          active: false
+        },
+      ];
+      return knex('oidc_user').insert(items);
+    })
     .then(() => knex.schema.createTable('identity_provider', table => {
       table.string('code').primary();
       table.string('display').notNullable();
@@ -19,14 +34,16 @@ exports.up = function(knex) {
       table.boolean('active').notNullable().defaultTo(true);
       stamps(knex, table);
     }))
-    .then(() => knex.schema.createTable('oidc_user', table => {
-      table.string('oidcId').primary();
-      table.string('idp').references('code').inTable('identity_provider').notNullable();
-      table.string('firstName');
-      table.string('fullName');
-      table.string('lastName');
-      table.string('username').notNullable().index();
-      table.string('email').index();
+    // add the idp fk for user (user needs to be created first for stamp fks)
+    .then(() => knex.schema.alterTable('oidc_user', table => {
+      table.string('idp').references('code').inTable('identity_provider').after('oidcId');
+    }))
+
+
+    // Add the rest of the tables
+    .then(() => knex.schema.createTable('permission', table => {
+      table.string('code').primary();
+      table.string('display').notNullable();
       table.boolean('active').notNullable().defaultTo(true);
       stamps(knex, table);
     }))
@@ -99,11 +116,14 @@ exports.up = function(knex) {
     });
 };
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return Promise.resolve()
     .then(() => knex.schema.dropTableIfExists('object_permission'))
     .then(() => knex.schema.dropTableIfExists('object'))
     .then(() => knex.schema.dropTableIfExists('permission'))
-    .then(() => knex.schema.dropTableIfExists('oidc_user'))
-    .then(() => knex.schema.dropTableIfExists('identity_provider'));
+    .then(() => knex.schema.alterTable('oidc_user', table => {
+      table.dropColumn('idp');
+    }))
+    .then(() => knex.schema.dropTableIfExists('identity_provider'))
+    .then(() => knex.schema.dropTableIfExists('oidc_user'));
 };
